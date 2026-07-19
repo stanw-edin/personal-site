@@ -1,0 +1,293 @@
+:root {
+  --bg: #eef0f2;
+  --bg-elevated: #ffffff;
+  --border: #dcdfe3;
+  --text: #16181b;
+  --text-muted: #6b7280;
+  --accent: #8b5cf6;
+  --accent-dim: #8b5cf61f;
+  --max-width: 760px;
+  --font-sans: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* spacing scale - use these instead of ad-hoc rem values so rhythm stays consistent */
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-7: 4rem;
+  --space-8: 5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  /* a single soft wash of colour top-left, rather than a repeating grid -
+     quieter, and doesn't read as a copy of any particular reference site */
+  background-image: radial-gradient(
+    circle at 12% -10%,
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    transparent 45%
+  );
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+p,
+li {
+  text-align: justify;
+  text-align-last: left;
+  hyphens: auto;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.wrap {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.wrap-wide {
+  max-width: 1080px;
+}
+
+/* nav */
+.site-nav {
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.site-nav .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.site-nav .brand {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.site-nav .links {
+  display: flex;
+  gap: 1.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.site-nav .links a {
+  color: var(--text-muted);
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid transparent;
+}
+
+.site-nav .links a:hover,
+.site-nav .links a.active {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom-color: var(--accent);
+}
+
+main {
+  padding: var(--space-7) 0 var(--space-8);
+  min-height: 60vh;
+}
+
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 4px;
+  padding: 0.2rem 0.55rem;
+  margin: 0 0.4rem 0.4rem 0;
+  letter-spacing: 0.01em;
+}
+
+/* Panel - used for CV entries, blog post cards, photo albums, and the
+   homepage profile/module cards. A soft shadow lifts it off the page
+   instead of a hard border, and a coloured left edge nods to a notebook
+   cell's execution-indicator bar without bringing back the boxed-in
+   border look. */
+.card {
+  background: var(--bg-elevated);
+  border: none;
+  border-left: 3px solid var(--accent-dim);
+  border-radius: 6px;
+  padding: var(--space-4);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+a.card:hover,
+.card:hover {
+  border-left-color: var(--accent);
+}
+
+a.card:hover {
+  box-shadow: 0 6px 16px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.08);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+a.card:hover h3 {
+  color: var(--accent);
+  transition: color 0.15s ease;
+}
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 6px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.btn:hover {
+  text-decoration: none;
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Filter pills and category badges - shared between the blog index and the
+   photos album journal. */
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category-pill {
+  /* grows to fill leftover space on its row - rows with fewer pills end up
+     with wider ones, rows with more get narrower ones, so every row is
+     flush with both edges rather than trailing off short */
+  flex: 1 1 auto;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.category-pill:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.category-pill.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.category-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-weight: 600;
+}
+
+/* Year headings on the blog index are created client-side by JS (for
+   pagination/grouping), so this must live in an unscoped stylesheet - Astro's
+   per-component scoped styles never apply to elements added after build time. */
+.year-heading {
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.year-heading:first-child {
+  border-top: none;
+  padding-top: 0;
+}

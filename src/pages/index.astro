@@ -1,0 +1,117 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { cv } from '../data/cv';
+import { withBase } from '../lib/base';
+
+const icons: Record<string, string> = {
+  // GitHub's official mark, brand colour #181717 (near-black), on a white
+  // rounded square so it reads on both light and dark backgrounds.
+  GitHub:
+    '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect width="16" height="16" rx="3" fill="#fff"/><path fill="#181717" d="M8 1.3c-3.7 0-6.7 3-6.7 6.7 0 2.97 1.92 5.49 4.59 6.38.34.06.46-.15.46-.32 0-.16-.01-.7-.01-1.27-1.87.34-2.35-.46-2.5-.87-.08-.21-.45-.87-.76-1.05-.26-.14-.63-.48-.01-.49.58-.01 1 .53 1.14.76.67 1.12 1.74.8 2.16.61.07-.48.26-.8.47-.99-1.65-.19-3.39-.83-3.39-3.67 0-.81.29-1.48.76-2-.08-.19-.33-.94.07-1.96 0 0 .62-.2 2.04.76a6.9 6.9 0 0 1 3.72 0c1.42-.96 2.04-.76 2.04-.76.4 1.02.15 1.77.07 1.96.47.52.76 1.18.76 2 0 2.85-1.74 3.48-3.4 3.67.27.23.5.68.5 1.38 0 1-.01 1.79-.01 2.04 0 .17.12.43.46.32A6.7 6.7 0 0 0 14.7 8c0-3.7-3-6.7-6.7-6.7Z"/></svg>',
+  // LinkedIn's official mark: brand blue square (#0A66C2) with a white "in".
+  LinkedIn:
+    '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect width="16" height="16" rx="3" fill="#0A66C2"/><path fill="#fff" d="M5.34 6.2H3.1v6.5h2.24V6.2Zm-1.12-1a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3Zm4.53 1H6.6v6.5h2.15v-3.4c0-.9.17-1.77 1.28-1.77 1.1 0 1.11 1.03 1.11 1.83v3.34h2.16V9.15c0-1.9-.41-3.35-2.61-3.35-1.06 0-1.77.58-2.06 1.13h-.03V6.2Z"/></svg>',
+};
+---
+
+<Layout title="Home">
+  <section class="section card profile-card">
+    <div class="profile-top">
+      <img
+        src={withBase('/photos/stan-profile.jpeg')}
+        alt="Headshot placeholder"
+        width="96"
+        height="96"
+        class="hero-avatar"
+      />
+      <div>
+        <h1 class="profile-name">{cv.homeName}</h1>
+        <p class="mono profile-title">{cv.title}</p>
+      </div>
+    </div>
+
+    <div class="profile-fields">
+      <div>
+        <p class="section-title">Based in</p>
+        <p class="profile-field-value">{cv.location}</p>
+      </div>
+    </div>
+
+    <p class="profile-bio">{cv.shortBio}</p>
+
+    <p class="profile-links">
+      Find me on {cv.links.map((l, i) => (
+        <>
+          <a href={l.url} target="_blank" rel="noopener noreferrer" class="profile-link">
+            <Fragment set:html={icons[l.label] ?? ''} />
+            <span>{l.label}</span>
+          </a>{i < cv.links.length - 1 ? ' · ' : ''}
+        </>
+      ))}
+    </p>
+  </section>
+</Layout>
+
+<style>
+  .profile-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .profile-top {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .hero-avatar {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+  }
+
+  .profile-name {
+    margin: 0;
+  }
+
+  .profile-title {
+    color: var(--accent);
+    margin: 0.25rem 0 0;
+  }
+
+  .profile-fields {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+
+  .section-title {
+    margin: 0;
+  }
+
+  .profile-field-value {
+    margin: 0.25rem 0 0;
+  }
+
+  .profile-bio,
+  .profile-links {
+    margin: 0;
+    color: var(--text-muted);
+  }
+
+  .profile-links {
+    font-size: 0.9rem;
+  }
+
+  .profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    vertical-align: middle;
+    color: inherit;
+  }
+</style>

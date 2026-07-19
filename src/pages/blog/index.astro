@@ -1,0 +1,416 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { withBase } from '../../lib/base';
+import { extractFirstImage } from '../../lib/blog';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+
+// Resolve preview image (if any) once here - relative/root paths get the base
+// prefix, absolute URLs are left as-is.
+const resolveImageSrc = (src: string) => (/^https?:\/\//.test(src) ? src : withBase(src));
+
+const postsWithPreview = posts.map((post) => {
+  const image = extractFirstImage(post.body);
+  const searchIndex = [post.data.title, post.data.description, post.data.category, ...post.data.tags]
+    .join(' ')
+    .toLowerCase();
+  return {
+    ...post,
+    previewImage: image ? resolveImageSrc(image) : null,
+    year: post.data.date.getFullYear(),
+    searchIndex,
+  };
+});
+
+const categories = [...new Set(postsWithPreview.map((p) => p.data.category))].sort();
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+// Single "archive" dropdown grouped by year, replacing separate year/month
+// selects - only shows month options that actually have posts, and one
+// choice sets both the year and month filter at once (value: "YYYY-M").
+const archiveMap = new Map<number, Set<number>>();
+for (const post of postsWithPreview) {
+  const month = post.data.date.getMonth();
+  if (!archiveMap.has(post.year)) archiveMap.set(post.year, new Set());
+  archiveMap.get(post.year)!.add(month);
+}
+const archiveYears = [...archiveMap.keys()].sort((a, b) => b - a);
+---
+
+<Layout title="Blog" description="Notes on data, models, and projects." wide>
+  {posts.length === 0 && <p class="section" style="color: var(--text-muted);">No posts yet.</p>}
+
+  {posts.length > 0 && (
+    <div class="blog-layout">
+      <aside class="blog-sidebar">
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="Search posts..."
+          aria-label="Search posts"
+        />
+        <div class="category-filters" id="category-filters">
+          <button class="category-pill active" data-category="all" type="button">All</button>
+          {categories.map((c) => (
+            <button class="category-pill" data-category={c} type="button">{c}</button>
+          ))}
+        </div>
+        <select id="date-filter" class="filter-select date-filter" aria-label="Filter by date">
+          <option value="all">All dates</option>
+          {archiveYears.map((y) => (
+            <optgroup label={String(y)}>
+              {[...archiveMap.get(y)!].sort((a, b) => b - a).map((m) => (
+                <option value={`${y}-${m + 1}`}>{MONTH_NAMES[m]}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </aside>
+
+      <div class="blog-main">
+        <div id="posts-container">
+          {postsWithPreview.map((post) => (
+            <a
+              class="card post-item"
+              data-category={post.data.category}
+              data-year={post.year}
+              data-month={post.data.date.getMonth() + 1}
+              data-search={post.searchIndex}
+              href={withBase(`/blog/${post.id}`)}
+            >
+              {post.previewImage && (
+                <img src={post.previewImage} alt="" class="blog-card-image" loading="lazy" />
+              )}
+              <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <span class="category-badge">{post.data.category}</span>
+                <span class="mono" style="color: var(--text-muted); font-size: 0.85rem;">
+                  {post.data.date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+              <h3 style="margin: 0.6rem 0 0;">{post.data.title}</h3>
+              <p style="color: var(--text-muted); margin: 0.5rem 0 0;">{post.data.description}</p>
+              <div style="margin-top: 0.75rem;">
+                {post.data.tags.map((t: string) => <span class="tag">{t}</span>)}
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <p id="no-results" style="color: var(--text-muted); margin-top: var(--space-4); display: none;">
+          No posts match your search.
+        </p>
+
+        <div id="pagination" class="pagination" style="display: none;">
+          <button id="prev-page" class="mono" type="button">&larr; Prev</button>
+          <span id="page-info" class="mono" style="color: var(--text-muted); font-size: 0.85rem;"></span>
+          <button id="next-page" class="mono" type="button">Next &rarr;</button>
+        </div>
+      </div>
+    </div>
+  )}
+</Layout>
+
+<script>
+  const PAGE_SIZE = 6;
+  let currentPage = 1;
+  let activeCategory = 'all';
+
+  const postItems = Array.from(document.querySelectorAll<HTMLAnchorElement>('.post-item'));
+  const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+  const categoryPills = Array.from(document.querySelectorAll<HTMLButtonElement>('.category-pill'));
+  const dateFilter = document.getElementById('date-filter') as HTMLSelectElement | null;
+  const postsContainer = document.getElementById('posts-container');
+  const paginationEl = document.getElementById('pagination');
+  const prevBtn = document.getElementById('prev-page') as HTMLButtonElement | null;
+  const nextBtn = document.getElementById('next-page') as HTMLButtonElement | null;
+  const pageInfo = document.getElementById('page-info');
+  const noResults = document.getElementById('no-results');
+
+  function clearYearHeadings() {
+    postsContainer?.querySelectorAll('.year-heading').forEach((el) => el.remove());
+  }
+
+  // Keeps the sidebar's top edge level with the top of the first visible
+  // post (its photo preview, when it has one) rather than the top of the
+  // post list container - the year heading above the first post pushes the
+  // post down, so the sidebar needs to shift down by the same amount.
+  const blogSidebar = document.querySelector<HTMLElement>('.blog-sidebar');
+
+  function alignSidebarToFirstPost() {
+    if (!blogSidebar || !postsContainer) return;
+
+    if (window.innerWidth < 860) {
+      blogSidebar.style.marginTop = '';
+      return;
+    }
+
+    const firstVisible = postItems.find((el) => !el.classList.contains('hidden'));
+    if (!firstVisible) {
+      blogSidebar.style.marginTop = '';
+      return;
+    }
+
+    const containerTop = postsContainer.getBoundingClientRect().top;
+    const firstPostTop = firstVisible.getBoundingClientRect().top;
+    const offset = firstPostTop - containerTop;
+    blogSidebar.style.marginTop = offset > 0 ? `${offset}px` : '';
+  }
+
+  // The archive dropdown's value is "all" or "YYYY-M" - split it into the
+  // year/month pair the rest of the filtering logic works with.
+  function parseDateFilter(): { year: string; month: string } {
+    const value = dateFilter?.value ?? 'all';
+    if (value === 'all') return { year: 'all', month: 'all' };
+    const [year, month] = value.split('-');
+    return { year, month };
+  }
+
+  function getMatches() {
+    const query = (searchInput?.value ?? '').trim().toLowerCase();
+    const { year: activeYear, month: activeMonth } = parseDateFilter();
+    return postItems.filter((el) => {
+      const matchesCategory = activeCategory === 'all' || el.dataset.category === activeCategory;
+      const matchesYear = activeYear === 'all' || el.dataset.year === activeYear;
+      const matchesMonth = activeMonth === 'all' || el.dataset.month === activeMonth;
+      const matchesSearch = !query || (el.dataset.search ?? '').includes(query);
+      return matchesCategory && matchesYear && matchesMonth && matchesSearch;
+    });
+  }
+
+  function render() {
+    if (!postsContainer || !paginationEl || !prevBtn || !nextBtn || !pageInfo || !noResults) return;
+
+    const query = (searchInput?.value ?? '').trim();
+    const { year: activeYear, month: activeMonth } = parseDateFilter();
+    const isFiltering = activeCategory !== 'all' || activeYear !== 'all' || activeMonth !== 'all' || query !== '';
+    const matches = getMatches();
+
+    postItems.forEach((el) => el.classList.add('hidden'));
+    clearYearHeadings();
+
+    if (matches.length === 0) {
+      noResults.style.display = 'block';
+      paginationEl.style.display = 'none';
+      if (blogSidebar) blogSidebar.style.marginTop = '';
+      return;
+    }
+    noResults.style.display = 'none';
+
+    let visible: HTMLAnchorElement[];
+
+    if (isFiltering) {
+      visible = matches;
+      paginationEl.style.display = 'none';
+    } else {
+      const totalPages = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
+      currentPage = Math.min(currentPage, totalPages);
+      const start = (currentPage - 1) * PAGE_SIZE;
+      visible = matches.slice(start, start + PAGE_SIZE);
+      paginationEl.style.display = totalPages > 1 ? 'flex' : 'none';
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    }
+
+    let lastYear = '';
+    visible.forEach((el) => {
+      const year = el.dataset.year ?? '';
+      if (year !== lastYear) {
+        const heading = document.createElement('div');
+        heading.className = 'year-heading mono';
+        heading.textContent = year;
+        postsContainer.insertBefore(heading, el);
+        lastYear = year;
+      }
+      el.classList.remove('hidden');
+    });
+
+    alignSidebarToFirstPost();
+  }
+
+  searchInput?.addEventListener('input', () => {
+    currentPage = 1;
+    render();
+  });
+
+  categoryPills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      categoryPills.forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeCategory = pill.dataset.category ?? 'all';
+      currentPage = 1;
+      render();
+    });
+  });
+
+  dateFilter?.addEventListener('change', () => {
+    currentPage = 1;
+    render();
+  });
+
+  prevBtn?.addEventListener('click', () => {
+    currentPage -= 1;
+    render();
+  });
+
+  nextBtn?.addEventListener('click', () => {
+    currentPage += 1;
+    render();
+  });
+
+  // Coalesce rapid resize events into one layout read/write per frame,
+  // rather than running the getBoundingClientRect measurement on every
+  // single resize tick while the user drags the window edge.
+  let resizeQueued = false;
+  window.addEventListener('resize', () => {
+    if (resizeQueued) return;
+    resizeQueued = true;
+    requestAnimationFrame(() => {
+      resizeQueued = false;
+      alignSidebarToFirstPost();
+    });
+  });
+
+  render();
+</script>
+
+<style>
+  .blog-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  .blog-sidebar,
+  .blog-main {
+    margin: 0;
+  }
+
+  .blog-sidebar {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    gap: var(--space-3);
+  }
+
+  @media (min-width: 860px) {
+    .blog-layout {
+      grid-template-columns: 1fr 240px;
+      align-items: start;
+    }
+
+    .blog-sidebar {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      position: sticky;
+      top: 96px;
+    }
+
+    .blog-main {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: start;
+    }
+  }
+
+  .search-input {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    box-sizing: border-box;
+    margin: 0;
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .date-filter {
+    width: 100%;
+  }
+
+  .filter-select {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+  }
+
+  .filter-select:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  #posts-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .post-item.hidden {
+    display: none;
+  }
+
+  .blog-card-image {
+    display: block;
+    width: calc(100% + 2 * var(--space-4));
+    height: 200px;
+    object-fit: cover;
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-3);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .pagination {
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-5);
+  }
+
+  .pagination button {
+    font-size: 0.85rem;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+
+  .pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .pagination button:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
+</style>

@@ -1,0 +1,216 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { cv } from '../data/cv';
+import { withBase } from '../lib/base';
+---
+
+<Layout title="CV" description={`CV for ${cv.name}`}>
+  <div class="section cv-header">
+    <div>
+      <h1 style="margin: 0 0 0.25rem;">{cv.name}</h1>
+      <p class="mono" style="color: var(--accent); margin: 0;">{cv.title}</p>
+      <p style="color: var(--text-muted); margin: 0.25rem 0 0; font-size: 0.9rem;">📍 {cv.location} · ✉️ {cv.email}</p>
+    </div>
+    <a class="btn" href={withBase(cv.pdfPath)} download>Download PDF</a>
+  </div>
+
+  <details class="section cv-section" open>
+    <summary class="cv-summary"><h2 class="section-title">Summary</h2></summary>
+    <div class="cv-section-content summary">
+      {cv.summary.map((paragraph) => (
+        <p style="color: var(--text-muted); margin: 0;">{paragraph}</p>
+      ))}
+    </div>
+  </details>
+
+  <details class="section cv-section" open>
+    <summary class="cv-summary"><h2 class="section-title">Experience</h2></summary>
+    <div class="cv-section-content entry-list">
+      {cv.experience.map((job) => (
+        <div class="card">
+          <strong><a href={job.companyUrl} target="_blank" rel="noopener noreferrer">{job.company}</a></strong>
+          <p style="color: var(--text-muted); margin: 0.5rem 0 0; font-size: 0.9rem;">{job.description}</p>
+          <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+            {job.roles.map((r) => (
+              <div>
+                <div style="display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 0.5rem;">
+                  <strong>{r.role}</strong>
+                  <span class="mono" style="color: var(--text-muted); font-size: 0.85rem;">{r.period}</span>
+                </div>
+                <ul style="color: var(--text-muted); margin: 0.5rem 0 0; padding-left: 1.2rem;">
+                  {r.points.map((p) => <li>{p}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </details>
+
+  <details class="section cv-section" open>
+    <summary class="cv-summary"><h2 class="section-title">Education</h2></summary>
+    <div class="cv-section-content entry-list">
+      {cv.education.map((e) => (
+        <div class="card">
+          <div style="display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 0.5rem;">
+            <strong>{e.qualification} · {e.institution}</strong>
+            <span class="mono" style="color: var(--text-muted); font-size: 0.85rem;">{e.period}</span>
+          </div>
+          <p style="color: var(--text-muted); margin: 0.5rem 0 0; font-size: 0.9rem;">
+            {e.grade} · {e.thesis}
+          </p>
+        </div>
+      ))}
+    </div>
+  </details>
+
+  <details class="section cv-section" open>
+    <summary class="cv-summary"><h2 class="section-title">Public Speaking</h2></summary>
+    <div class="cv-section-content entry-list">
+      <p style="color: var(--text-muted); margin: 0;">{cv.publicSpeakingIntro}</p>
+      {cv.publicSpeaking.map((talk) => (
+        <div class="card">
+          <div style="display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 0.5rem;">
+            <strong>{talk.title} · {talk.event}</strong>
+            <span class="mono" style="color: var(--text-muted); font-size: 0.85rem;">{talk.period}</span>
+          </div>
+          <ul style="color: var(--text-muted); margin: 0.75rem 0 0; padding-left: 1.2rem;">
+            {talk.points.map((p) => <li>{p}</li>)}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </details>
+
+  <details class="section cv-section" open>
+    <summary class="cv-summary"><h2 class="section-title">Skills</h2></summary>
+    <div class="cv-section-content">
+      <div class="card skills-card">
+        {cv.skills.map((group) => (
+          <div class="skills-row">
+            <p class="mono skills-category">{group.category}</p>
+            <div class="skills-tags">
+              {group.items.map((s) => <span class="tag">{s}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </details>
+</Layout>
+
+<style>
+  .cv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  /* Native <details>/<summary> gives every section free collapse/expand
+     behaviour - keyboard-accessible, works with JS disabled, no custom
+     script needed. Just restyle the default marker into the site's chevron. */
+  .cv-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+
+  .cv-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .cv-summary::before {
+    content: '\25B8';
+    display: inline-block;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    transition: transform 0.15s ease;
+  }
+
+  .cv-section[open] > .cv-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .cv-summary .section-title {
+    margin: 0;
+  }
+
+  .cv-summary:hover .section-title {
+    color: var(--accent);
+  }
+
+  .cv-section-content {
+    margin-top: var(--space-3);
+  }
+
+  .skills-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .skills-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .skills-row:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .skills-category {
+    flex: 0 0 180px;
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .skills-tags {
+    flex: 1 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .skills-tags .tag {
+    flex: 1 1 auto;
+    margin: 0;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    .skills-row {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .skills-category {
+      flex-basis: auto;
+    }
+  }
+</style>

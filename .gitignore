@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.astro/
+
+# macOS
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+
+# VS Code
+.vscode/
